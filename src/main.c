@@ -15,14 +15,11 @@
 // credentials.h stores the ssid and password as char*. You must make this youself for obvious reasons
 #include "credentials.h"
 #include "defs.h"
-#include "network.h"
 #include "spotify.h"
+#include "network.h"
 
 int main() {
   stdio_init_all();
-
-  gpio_init(LED);
-  gpio_set_dir(LED, GPIO_OUT);
 
   if(cyw43_arch_init_with_country(CYW43_COUNTRY_UK)){
     printf("Failed to initialise\n");
@@ -33,7 +30,6 @@ int main() {
 
   if(cyw43_arch_wifi_connect_timeout_ms(ssid, pass, CYW43_AUTH_WPA2_AES_PSK, 10000)){
     printf("Failed to connect\n");
-    gpio_put(LED, 1);
     return 1;
   }
 

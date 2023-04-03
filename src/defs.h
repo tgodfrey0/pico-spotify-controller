@@ -4,13 +4,19 @@
 #include "pico/stdlib.h"
 
 // Constants
-#define LED 16
-#define TCP_PORT 4444
-#define BUF_SIZE 2048
-#define POLL_TIME_S 10
-#define TEST_ITERATIONS 10
+#define SWITCH_A_PLAYBACK     16
+#define SWITCH_B              17
+#define SWITCH_X_NEXT         19
+#define SWITCH_Y_PREVIOUS     20
 
-#define TEMPERATURE_UNITS 'C'
+#define LED_R                 9
+#define LED_G                 10
+#define LED_B                 11
+
+#define TCP_PORT              4444
+#define BUF_SIZE              2048
+#define POLL_TIME_S           10
+#define TEST_ITERATIONS       10
 
 // Structs
 typedef struct TCP_SERVER_T_ {

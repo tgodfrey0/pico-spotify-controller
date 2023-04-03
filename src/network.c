@@ -180,7 +180,6 @@ TCP_SERVER_T* init_server(void){
 
   if(!state){
     printf("Failed to allocate the state\n");
-    gpio_put(LED, 1);
     return NULL;
   }
 
@@ -191,7 +190,6 @@ TCP_SERVER_T* init_server(void){
   struct tcp_pcb *pcb = tcp_new_ip_type(IPADDR_TYPE_ANY);
   if(!pcb) {
     printf("Failed to create PCB\n");
-    gpio_put(LED, 1);
     return NULL;
   }
 
@@ -200,7 +198,6 @@ TCP_SERVER_T* init_server(void){
   
   if(err){
     printf("Failed to bind to port\n");
-    gpio_put(LED, 1);
     return NULL;
   }
 
@@ -211,7 +208,7 @@ TCP_SERVER_T* init_server(void){
     if(pcb){
       tcp_close(pcb);
     }
-    gpio_put(LED, 1);
+    
     return NULL;
   }
 
@@ -226,10 +223,5 @@ TCP_SERVER_T* init_server(void){
 void listen(TCP_SERVER_T *state){
   printf("Listening for connections\n");
   // Loop until a connection
-  while(true){
-    gpio_put(LED, 1);
-    busy_wait_ms(1000);
-    gpio_put(LED, 0);
-    busy_wait_ms(1000);
-  }
+  for(;;){}
 }
