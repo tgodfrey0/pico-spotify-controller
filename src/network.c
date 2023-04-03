@@ -175,7 +175,7 @@ static err_t tcp_server_accept(void *arg, struct tcp_pcb *client_pcb, err_t err)
 /**
  * Runs all the functions to set up and start the TCP server
  */
-TCP_SERVER_T* init_server(){
+TCP_SERVER_T* init_server(void){
   TCP_SERVER_T *state = calloc(1,sizeof(TCP_SERVER_T));
 
   if(!state){

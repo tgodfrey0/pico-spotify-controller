@@ -12,7 +12,7 @@
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
 
-// credentials.h stores the ssid and password as char[]. You must make this youself for obvious reasons
+// credentials.h stores the ssid and password as char*. You must make this youself for obvious reasons
 #include "credentials.h"
 #include "defs.h"
 #include "utils.h"
