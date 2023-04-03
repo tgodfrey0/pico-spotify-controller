@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 #include(pico_sdk_import.cmake)
 include(lib/pico-sdk/pico_sdk_init.cmake)
 
-set(PROJECT_NAME tcpServer)
+set(PROJECT_NAME spotifyController)
 
 project(${PROJECT_NAME})
 set(CMAKE_C_STANDARD 11)
@@ -22,6 +22,7 @@ target_link_libraries(${PROJECT_NAME}
 
 target_sources(${PROJECT_NAME}
 	PRIVATE src/main.c
+	PRIVATE src/network.c
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})
