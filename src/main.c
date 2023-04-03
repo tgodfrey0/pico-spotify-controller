@@ -16,6 +16,7 @@
 #include "credentials.h"
 #include "defs.h"
 #include "network.h"
+#include "spotify.h"
 
 int main() {
   stdio_init_all();
