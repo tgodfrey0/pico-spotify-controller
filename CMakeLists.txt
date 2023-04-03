@@ -20,9 +20,9 @@ target_link_libraries(${PROJECT_NAME}
 	hardware_adc
 )
 
-target_sources(${PROJECT_NAME}
-	PRIVATE src/main.c
-	PRIVATE src/network.c
+target_sources(${PROJECT_NAME} PRIVATE
+	src/main.c
+	src/network.c
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})

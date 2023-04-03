@@ -15,7 +15,6 @@
 // credentials.h stores the ssid and password as char*. You must make this youself for obvious reasons
 #include "credentials.h"
 #include "defs.h"
-#include "utils.h"
 #include "network.h"
 
 int main() {

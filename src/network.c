@@ -16,7 +16,7 @@
 
 #include "network.h"
 
-static err_t tcp_server_close(void *arg) {
+err_t tcp_server_close(void *arg) {
   TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
   err_t err = ERR_OK;
   if (state->client_pcb != NULL) {
@@ -48,7 +48,7 @@ static err_t tcp_server_close(void *arg) {
  * @param tpcb	  the connection PCB for which data has been acknowledged
  * @param len	    the amount of bytes acknowledged
  */
-static err_t tcp_server_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
+err_t tcp_server_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
   TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
   state->sent_len += len;
 
@@ -132,7 +132,7 @@ err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err
  * @param arg	  the state struct
  * @param err	  the error code
  */
-static void tcp_server_err(void *arg, err_t err) {
+void tcp_server_err(void *arg, err_t err) {
   if (err != ERR_ABRT) {
     printf("TCP Client ERROR %d\n", err);
   }
@@ -145,7 +145,7 @@ static void tcp_server_err(void *arg, err_t err) {
  * @param client_pcb	the new connection PCB
  * @param err		the error code (if present)
  */
-static err_t tcp_server_accept(void *arg, struct tcp_pcb *client_pcb, err_t err) {
+err_t tcp_server_accept(void *arg, struct tcp_pcb *client_pcb, err_t err) {
   TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
   if (err != ERR_OK || client_pcb == NULL) {
     printf("Failed to accept\n");
