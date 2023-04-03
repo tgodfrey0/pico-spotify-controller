@@ -1,0 +1,4 @@
+build/
+src/credentials.h
+.cache/
+src/.cache/
