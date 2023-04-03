@@ -28,14 +28,13 @@ typedef struct TCP_SERVER_T_ {
   int recv_len;
 } TCP_SERVER_T;
 
-// Messages
-static char* msg_welcome = "Welcome to this lwIP TCP server\n- Send 'TEMP' to receive the current temperature\n- Send 'TIME' to receive the current time\n- Send 'SET' followed by 'C' or 'F' to set the temperature unit\n";
-static char* msg_invalid_unit = "Invalid unit!\nAccepted units are 'C' and 'F'\n";
-static char* msg_unit_set = "New temperature unit set\n";
-static char* msg_invalid_command = "Unrecognised command!\n";
+// Request Strings
+char *api_url = "https://api/spotify.com";
 
-static char* cmd_temp = "TEMP";
-static char* cmd_time = "TIME";
-static char* cmd_set = "SET";
+char *cmd_get_playback = "GET /me/player";
+char *cmd_play = "PUT /me/player/play";
+char *cmd_pause = "PUT /me/player/pause";
+char *cmd_next = "PUT /me/player/next";
+char *cmd_previous = "PUT /me/player/previous";
 
 #endif /* DEFS_H */

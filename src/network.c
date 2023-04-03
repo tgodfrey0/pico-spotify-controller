@@ -15,31 +15,57 @@
 #include "defs.h"
 
 #include "network.h"
+#include "spotify.h"
 
-err_t tcp_server_close(void *arg) {
-  TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
+struct tcp_pcb *tpcb;
+
+err_t tcp_client_connect(void *arg, struct tcp_pcb *tpcb, err_t err){
+  printf("Connected to API\n");
+  sync_playing();
+  return ERR_OK;
+}
+
+struct tcp_pcb* tcp_client_init(int ip_1, int ip_2, int ip_3, int ip_4){
+  struct ip_addr_t ip;
+  IP4_ADDR(&ip, ip_1, ip_2, ip_3, ip_4);
+
+  tpcb = tcp_new();
+
+  if(!tpcb){
+    printf("Failed to create PCB\n");
+    return NULL;
+  }
+
+  tcp_arg(tpcb, NULL); // No extra state is carried
+
+  tcp_err(tpcb, tcp_client_err);
+  tcp_sent(tpcb, tcp_client_sent);
+  tcp_recv(tpcb, tcp_client_recv);
+
+  tcp_connect(tpcb, &ip, 80, tcp_client_connect);
+}
+
+
+err_t tcp_client_close(void *arg){
+  struct tcp_pcb *tpcb = (struct tcp_pcb*) arg;
+
   err_t err = ERR_OK;
-  if (state->client_pcb != NULL) {
-    tcp_arg(state->client_pcb, NULL);
-    tcp_poll(state->client_pcb, NULL, 0);
-    tcp_sent(state->client_pcb, NULL);
-    tcp_recv(state->client_pcb, NULL);
-    tcp_err(state->client_pcb, NULL);
-    err = tcp_close(state->client_pcb);
+  if(tpcb != NULL){
+    tcp_arg(tpcb, NULL);
+    tcp_sent(tpcb, NULL);
+    tcp_recv(tpcb, NULL);
+    tcp_err(tpcb, NULL);
+    err = tcp_close(tpcb);
     if (err != ERR_OK) {
       printf("Close failed %d, calling abort\n", err);
-      tcp_abort(state->client_pcb);
+      tcp_abort(tpcb);
       err = ERR_ABRT;
     }
-    state->client_pcb = NULL;
-  }
-  if (state->server_pcb) {
-    tcp_arg(state->server_pcb, NULL);
-    tcp_close(state->server_pcb);
-    state->server_pcb = NULL;
+    tpcb = NULL;
   }
   return err;
 }
+
 
 /**
  * Called when the client acknowledges the sent data
@@ -48,7 +74,7 @@ err_t tcp_server_close(void *arg) {
  * @param tpcb	  the connection PCB for which data has been acknowledged
  * @param len	    the amount of bytes acknowledged
  */
-err_t tcp_server_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
+err_t tcp_client_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
   TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
   state->sent_len += len;
 
@@ -69,7 +95,7 @@ err_t tcp_server_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
  * @param tcp_pcb     the client PCB
  * @param data	      the data to send
  */
-err_t tcp_server_send_data(void *arg, struct tcp_pcb *tpcb, uint8_t data[])
+err_t tcp_client_send_data(void *arg, struct tcp_pcb *tpcb, char *data)
 {
   TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
   
@@ -100,7 +126,7 @@ err_t tcp_server_send_data(void *arg, struct tcp_pcb *tpcb, uint8_t data[])
  * @param p	  the received data
  * @param err	  an error code if there has been an error receiving
  */
-err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
+err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
   TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
   if (!p) {
     printf("No data received");
@@ -111,7 +137,7 @@ err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err
   
   if(p->tot_len > 0){
     printf("Data: %s", ((char*) p->payload));
-    printf("tcp_server_recv %d/%d err %d\n", p->tot_len, state->recv_len, err);
+    printf("tcp_client_recv %d/%d err %d\n", p->tot_len, state->recv_len, err);
 
     // Receive the buffer
     const uint16_t buffer_left = BUF_SIZE - state->recv_len;
@@ -132,96 +158,9 @@ err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err
  * @param arg	  the state struct
  * @param err	  the error code
  */
-void tcp_server_err(void *arg, err_t err) {
+void tcp_client_err(void *arg, err_t err) {
   if (err != ERR_ABRT) {
     printf("TCP Client ERROR %d\n", err);
   }
 }
 
-/**
- * The function called when a client connects
- *
- * @param arg		the state struct
- * @param client_pcb	the new connection PCB
- * @param err		the error code (if present)
- */
-err_t tcp_server_accept(void *arg, struct tcp_pcb *client_pcb, err_t err) {
-  TCP_SERVER_T *state = (TCP_SERVER_T*)arg;
-  if (err != ERR_OK || client_pcb == NULL) {
-    printf("Failed to accept\n");
-    return ERR_VAL;
-  }
-
-  printf("Client connected\n");
-
-  state->client_pcb = client_pcb;
-  tcp_arg(client_pcb, state);
-
-  // Specifies the callback function that should be called when data has been acknowledged by the client
-  tcp_sent(client_pcb, tcp_server_sent);
-
-  // Specifies the callback function that should be called when data has arrived
-  tcp_recv(client_pcb, tcp_server_recv);
-
-  // Specifies the polling interval and the callback function that should be called to poll the application
-  //tcp_poll(client_pcb, tcp_server_poll, POLL_TIME_S * 2);
-
-  // Specifies the callback function called if a fatal error has occurred
-  tcp_err(client_pcb, tcp_server_err);
-
-  return tcp_server_send_data(arg, state->client_pcb, "");
-}
-
-/**
- * Runs all the functions to set up and start the TCP server
- */
-TCP_SERVER_T* init_server(void){
-  TCP_SERVER_T *state = calloc(1,sizeof(TCP_SERVER_T));
-
-  if(!state){
-    printf("Failed to allocate the state\n");
-    return NULL;
-  }
-
-
-  printf("Starting TCP server at %s:%u\n", ip4addr_ntoa(netif_ip4_addr(netif_list)), TCP_PORT);
-
-  // Creates s new TCP protocol control block but doesn't place it on any of the TCP PCB lists. The PCB is not put on any list until it is bound
-  struct tcp_pcb *pcb = tcp_new_ip_type(IPADDR_TYPE_ANY);
-  if(!pcb) {
-    printf("Failed to create PCB\n");
-    return NULL;
-  }
-
-  // Binds the connection to a local port number
-  err_t err = tcp_bind(pcb, NULL, TCP_PORT);
-  
-  if(err){
-    printf("Failed to bind to port\n");
-    return NULL;
-  }
-
-  // Set the state to LISTEN. Returns a more memory efficient PCB
-  state->server_pcb = tcp_listen_with_backlog(pcb, 1);
-  if(!state->server_pcb){
-    printf("Failed to listen\n");
-    if(pcb){
-      tcp_close(pcb);
-    }
-    
-    return NULL;
-  }
-
-  // The current listening block and the parameter to pass to all callback functions
-  tcp_arg(state->server_pcb, state);
-  // Specifies the function to be called whenever a listening connection has been connected to by a host
-  tcp_accept(state->server_pcb, tcp_server_accept);
-
-  return state;
-}
-
-void listen(TCP_SERVER_T *state){
-  printf("Listening for connections\n");
-  // Loop until a connection
-  for(;;){}
-}
