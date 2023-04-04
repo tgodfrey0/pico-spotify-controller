@@ -35,17 +35,8 @@ int main() {
 
   printf("Connected to WiFi\n");
 
-  TCP_SERVER_T *state = init_server();
+  init_spotify();
   
-  if(!state){
-    printf("Shutting down\n");
-    return 1;
-  }
-  
-  listen(state);
-
-  tcp_server_close(state);
-  free(state);
   cyw43_arch_deinit();
   return 0;
 }
