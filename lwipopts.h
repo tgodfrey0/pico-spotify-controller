@@ -1,13 +1,6 @@
-#ifndef _LWIPOPTS_EXAMPLE_COMMONH_H
-#define _LWIPOPTS_EXAMPLE_COMMONH_H
+#ifndef _LWIPOPTS_H
+#define _LWIPOPTS_H
 
-
-// Common settings used in most of the pico_w examples
-// (see https://www.nongnu.org/lwip/2_1_x/group__lwip__opts.html for details)
-
-#define TCP_LISTEN_BACKLOG					1
-
-// allow override in some examples
 #ifndef NO_SYS
 #define NO_SYS                      1
 #endif
@@ -21,9 +14,8 @@
 // MEM_LIBC_MALLOC is incompatible with non polling versions
 #define MEM_LIBC_MALLOC             0
 #endif
-#define LWIP_ALTCP_TLS_MBEDTLS			1
 #define MEM_ALIGNMENT               4
-#define MEM_SIZE                    40320
+#define MEM_SIZE                    4000
 #define MEMP_NUM_TCP_SEG            32
 #define MEMP_NUM_ARP_QUEUE          10
 #define PBUF_POOL_SIZE              24
@@ -31,7 +23,6 @@
 #define LWIP_ETHERNET               1
 #define LWIP_ICMP                   1
 #define LWIP_RAW                    1
-#define TCP_WND                     (16 * TCP_MSS)
 #define TCP_MSS                     1460
 #define TCP_SND_BUF                 (8 * TCP_MSS)
 #define TCP_SND_QUEUELEN            ((4 * (TCP_SND_BUF) + (TCP_MSS - 1)) / (TCP_MSS))
@@ -90,4 +81,14 @@
 #define SLIP_DEBUG                  LWIP_DBG_OFF
 #define DHCP_DEBUG                  LWIP_DBG_OFF
 
-#endif /* __LWIPOPTS_H__ */
+#define TCP_WND  16384
+
+#define LWIP_ALTCP               1
+#define LWIP_ALTCP_TLS           1
+#define LWIP_ALTCP_TLS_MBEDTLS   1
+
+#define LWIP_DEBUG 1
+#define ALTCP_MBEDTLS_DEBUG  LWIP_DBG_ON
+
+#endif
+

@@ -13,16 +13,24 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 pico_sdk_init()
 
 add_executable(${PROJECT_NAME})
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR} )
+target_include_directories(${PROJECT_NAME} PRIVATE 
+	${CMAKE_CURRENT_LIST_DIR}
+)
+
+add_subdirectory(lib/lwjson)
+
 target_link_libraries(${PROJECT_NAME} 
 	pico_cyw43_arch_lwip_threadsafe_background 
 	pico_lwip_mbedtls
+	pico_mbedtls
 	pico_stdlib 
-	hardware_adc
+	lwjson
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
 	src/main.c
+  src/network.c
+	src/spotify.c
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})
