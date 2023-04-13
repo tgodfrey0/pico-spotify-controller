@@ -5,6 +5,7 @@
 #include "lwip/altcp.h"
 #include "lwip/err.h"
 #include "lwip/tcpbase.h"
+#include "mbedtls/x509_crt.h"
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "lwip/pbuf.h"
@@ -40,8 +41,10 @@ err_t tls_client_close() {
 }
 
 err_t tls_client_send_data(char *data){
+	printf("jwajda");
   char msg[strlen(data) + strlen(server) + 40];
 
+	printf("Sending %s", msg);
   sprintf(msg, "%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", data, server);
 
 	err_t err = altcp_write(pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
@@ -59,6 +62,7 @@ err_t tls_client_connected(void *arg, struct altcp_pcb *pcb, err_t err) {
 		return tls_client_close();
 	}
 	printf("Connected to server\n");
+	spotify_init();
 	return ERR_OK;
 }
 
@@ -161,7 +165,7 @@ bool tls_client_open(const char *hostname) {
 }
 
 bool tls_client_init(void) {
-	tls_config = altcp_tls_create_config_client(cert, strlen(cert));
+	tls_config = altcp_tls_create_config_client(NULL, 0);
 
 	pcb = calloc(1, sizeof(struct altcp_pcb));
 
@@ -173,6 +177,5 @@ bool tls_client_init(void) {
 	if (!tls_client_open(server)) {
 		return false;
 	}
-
 	return true;
 }

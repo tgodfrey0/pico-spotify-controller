@@ -18,7 +18,7 @@ volatile bool playing = false;
 bool initialised = false;
 
 void spotify_init(){
-  if(!initialised) return;
+  if(initialised) return;
 
   // Init lwjson
   lwjson_init(&lwjson, tokens, LWJSON_ARRAYSIZE(tokens));
@@ -27,12 +27,12 @@ void spotify_init(){
 }
 
 void sync_playback(){
-  if(!initialised) return;
+  if(initialised) return;
   tls_client_send_data(cmd_get_playback);
 }
 
 void togglePlayback(){
-  if(!initialised) return;
+  if(initialised) return;
   if(playing){
     pause();
   } else {
@@ -41,27 +41,28 @@ void togglePlayback(){
 }
 
 void play(){
-  if(!initialised) return;
+  if(initialised) return;
   tls_client_send_data(cmd_play);
 }
 
 void pause(){
-  if(!initialised) return;
+  if(initialised) return;
   tls_client_send_data(cmd_pause);
 }
 
 void next(){
-  if(!initialised) return;
+  if(initialised) return;
   tls_client_send_data(cmd_next);
 }
 
 void previous(){
-  if(!initialised) return;
+  if(initialised) return;
   tls_client_send_data(cmd_previous);
 }
 
 void parse_response(void *arg){
   char *res = (char*)arg;
+  printf("Response: %s", res);
 
   if (lwjson_parse(&lwjson, res) == lwjsonOK) {
     const lwjson_token_t* t;

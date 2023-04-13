@@ -1,6 +1,8 @@
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
 
+#include "hardware/timer.h"
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "lwip/pbuf.h"
@@ -17,6 +19,8 @@
 
 struct altcp_pcb *pcb;
 struct altcp_tls_config *tls_config = NULL;
+
+bool connected = false;
 
 extern lwjson_t lwjson;
 
@@ -38,8 +42,6 @@ int main() {
   if(!tls_client_init()){
     printf("Failed to initialise TLS client");
   }
-
-  spotify_init();
 
   // Setup interrupts
 
