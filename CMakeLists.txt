@@ -29,8 +29,9 @@ target_link_libraries(${PROJECT_NAME}
 
 target_sources(${PROJECT_NAME} PRIVATE
 	src/main.c
-  src/network.c
+	src/network.c
 	src/spotify.c
+	src/base64.c
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})

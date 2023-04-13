@@ -16,6 +16,10 @@
 #include "network.h"
 #include "spotify.h"
 
+extern char* access_token;
+extern char* token_type;
+extern uint16_t token_expiry;
+
 extern const char *cert;
 extern const char *server;
 extern struct altcp_pcb *pcb;
@@ -40,12 +44,8 @@ err_t tls_client_close() {
 	return err;
 }
 
-err_t tls_client_send_data(char *data){
-	printf("jwajda");
-  char msg[strlen(data) + strlen(server) + 40];
-
+err_t tls_client_send_data_raw(char *msg){
 	printf("Sending %s", msg);
-  sprintf(msg, "%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", data, server);
 
 	err_t err = altcp_write(pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
 	if(err != ERR_OK){
@@ -54,6 +54,12 @@ err_t tls_client_send_data(char *data){
 	}
 
 	return ERR_OK;
+}
+
+err_t tls_client_send_data(char *data){
+	char msg[strlen(data) + strlen(server) + 40];
+	sprintf(msg, "%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", data, server);
+	tls_client_send_data_raw(msg);
 }
 
 err_t tls_client_connected(void *arg, struct altcp_pcb *pcb, err_t err) {
@@ -118,7 +124,7 @@ void tls_client_dns_found(const char* hostname, const ip_addr_t *ipaddr, void *a
 			tls_client_connect_to_server_ip(ipaddr);
 		}
 	else
-	{
+		{
 		printf("error resolving hostname %s\n", hostname);
 		tls_client_close();
 	}
@@ -132,7 +138,7 @@ bool tls_client_open(const char *hostname) {
 	pcb = altcp_tls_new(tls_config, IPADDR_TYPE_ANY);
 	if (!pcb) {
 		printf("failed to create pcb\n");
-    return false;
+		return false;
 	}
 
 	altcp_arg(pcb, NULL); // Don't need a state passed around
@@ -142,7 +148,7 @@ bool tls_client_open(const char *hostname) {
 	/* Set SNI */
 	mbedtls_ssl_set_hostname(altcp_tls_context(pcb), hostname);
 
-  printf("resolving %s\n", hostname);
+	printf("resolving %s\n", hostname);
 
 	// cyw43_arch_lwip_begin/end should be used around calls into lwIP to ensure correct locking.
 	// You can omit them if you are in a callback from lwIP. Note that when using pico_cyw_arch_poll
@@ -153,11 +159,11 @@ bool tls_client_open(const char *hostname) {
 	err = dns_gethostbyname(hostname, &server_ip, tls_client_dns_found, NULL);
 	if (err == ERR_OK){
 		tls_client_connect_to_server_ip(&server_ip);
-	}
+		}
 	else if (err != ERR_INPROGRESS){
-	  printf("error initiating DNS resolving, err=%d\n", err);
-	  tls_client_close();
-  }
+		printf("error initiating DNS resolving, err=%d\n", err);
+		tls_client_close();
+	}
 
 	cyw43_arch_lwip_end();
 
