@@ -2,8 +2,10 @@
 #define BASE64_H
 
 #include "pico/stdlib.h"
+#include <stddef.h>
 #include <stdint.h>
 
-char *base64_encode(const unsigned char *data, uint8_t input_length, uint16_t *output_length);
+size_t b64_encoded_size(size_t len);
+char *b64_encode(char *in, size_t len);
 
 #endif

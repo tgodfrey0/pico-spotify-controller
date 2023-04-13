@@ -29,18 +29,18 @@ volatile bool playing = false;
 bool initialised = false;
 
 void refresh_token(){
-  char *encoded_token;
-  uint16_t *encoded_token_length;
-  char *token_secret;
+  char token_secret[strlen(client_id) + 1 + strlen(client_secret)];
   sprintf(token_secret, "%s:%s", client_id, client_secret);
-  printf("%s\n", token_secret);
 
-  encoded_token = base64_encode(token_secret, strlen(token_secret), encoded_token_length);
-  printf("%s\n", encoded_token);
+  char *encoded_token = b64_encode(token_secret, strlen(token_secret));
+
+  char body[strlen(authorisation_code) + 96];
+  sprintf(body, "{\"grant_type\": \"authorization_code\",\"code\": \"%s\",\"redirect_uri\": \"http://localhost:8888/callback\"}", authorisation_code);
+  printf("%s\n", body);
 
   char msg[1024];
 
-  sprintf(msg, "GET /api/token HTTP/1.1\r\nHost: accounts.spotify.com\r\nAuthorization: Basic \r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n{\n\t'code': '%s',\n\t'redirect_uri': 'http://localhost:8888/callback',\n\t'grant_type': 'authorization_code'\n}\r\n", authorisation_code);
+  sprintf(msg, "POST /api/token HTTP/1.1\r\nHost: accounts.spotify.com\r\nAuthorization: Basic %s\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\n%s\r\n", encoded_token, strlen(body), body);
   tls_client_send_data_raw(msg);
 }
 

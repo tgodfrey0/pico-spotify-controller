@@ -1,45 +1,50 @@
 #include "base64.h"
 
 #include "pico/stdlib.h"
-#include <stdint.h>
 
-static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-                                'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-                                'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-                                'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-                                'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-                                'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-                                'w', 'x', 'y', 'z', '0', '1', '2', '3',
-                                '4', '5', '6', '7', '8', '9', '+', '/'};
-static char *decoding_table = NULL;
-static int mod_table[] = {0, 2, 1};
+const char b64chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+size_t b64_encoded_size(size_t inlen){
+    size_t ret;
 
-char *base64_encode(const unsigned char *data,
-                    uint8_t input_length,
-                    uint16_t *output_length) {
+    ret = inlen;
+    if(inlen % 3 != 0) ret += 3 - (inlen % 3);
+    ret /= 3;
+    ret *= 4;
 
-    *output_length = 4 * ((input_length + 2) / 3);
+    return ret;
+}
 
-    char *encoded_data = malloc(*output_length);
-    if (encoded_data == NULL) return NULL;
+char *b64_encode(char *in, size_t len){
+    char *out;
+    size_t outlen;
+    size_t i, j, v;
+    
+    if(in == NULL || len == 0) return NULL;
+    
+    outlen = b64_encoded_size(len);
+    out = malloc(outlen + 1);
+    out[outlen] = '\0';
 
-    for (int i = 0, j = 0; i < input_length;) {
+    for(i=0, j=0; i < len; i+=3, j+=4){
+        v = in[i];
+        v = i+1 < len ? v << 8 | in[i+1] : v << 8;
+        v = i+2 < len ? v << 8 | in[i+2] : v << 8;
 
-        uint32_t octet_a = i < input_length ? (unsigned char)data[i++] : 0;
-        uint32_t octet_b = i < input_length ? (unsigned char)data[i++] : 0;
-        uint32_t octet_c = i < input_length ? (unsigned char)data[i++] : 0;
+        out[j]   = b64chars[(v >> 18) & 0x3F];
+        out[j+1] = b64chars[(v >> 12) & 0x3F];
+        if(i+1 < len){
+            out[j+2] = b64chars[(v >> 6) & 0x3F];
+        } else {
+            out[j+2] = '=';
+        }
 
-        uint32_t triple = (octet_a << 0x10) + (octet_b << 0x08) + octet_c;
-
-        encoded_data[j++] = encoding_table[(triple >> 3 * 6) & 0x3F];
-        encoded_data[j++] = encoding_table[(triple >> 2 * 6) & 0x3F];
-        encoded_data[j++] = encoding_table[(triple >> 1 * 6) & 0x3F];
-        encoded_data[j++] = encoding_table[(triple >> 0 * 6) & 0x3F];
+        if (i+2 < len) {
+            out[j+3] = b64chars[v & 0x3F];
+        } else {
+            out[j+3] = '=';
+        }
     }
 
-    for (int i = 0; i < mod_table[input_length % 3]; i++)
-        encoded_data[*output_length - 1 - i] = '=';
-
-    return encoded_data;
+    return out;
 }
