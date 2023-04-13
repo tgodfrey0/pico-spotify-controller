@@ -19,6 +19,7 @@
 extern char* access_token;
 extern char* token_type;
 extern uint16_t token_expiry;
+extern char* refresh_token;
 
 extern const char *cert;
 extern const char *server;
@@ -58,7 +59,7 @@ err_t tls_client_send_data_raw(char *msg){
 
 err_t tls_client_send_data(char *data){
 	char msg[strlen(data) + strlen(server) + 40];
-	sprintf(msg, "%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", data, server);
+	sprintf(msg, "%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\nAuthorization: Bearer %s\r\n\r\n", data, server, access_token);
 	tls_client_send_data_raw(msg);
 }
 

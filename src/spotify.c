@@ -7,14 +7,18 @@
 
 #include "base64.h"
 #include "network.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 extern char* authorisation_code;
 extern char *client_id;
 extern char *client_secret;
+
 extern char* access_token;
 extern char* token_type;
 extern uint16_t token_expiry;
+extern char* refresh_token;
+
 extern char *server;
 extern char *cmd_get_playback;
 extern char *cmd_play;
@@ -28,14 +32,16 @@ static lwjson_t lwjson;
 volatile bool playing = false;
 bool initialised = false;
 
-void refresh_token(){
+void renew_token(){}
+
+void get_token(){
   char token_secret[strlen(client_id) + 1 + strlen(client_secret)];
   sprintf(token_secret, "%s:%s", client_id, client_secret);
 
   char *encoded_token = b64_encode(token_secret, strlen(token_secret));
 
   char body[strlen(authorisation_code) + 96];
-  sprintf(body, "{\"grant_type\": \"authorization_code\",\"code\": \"%s\",\"redirect_uri\": \"http://localhost:8888/callback\"}", authorisation_code);
+  sprintf(body, "grant_type=authorization_code&code=%s&redirect_uri=http://localhost:8888/callback", authorisation_code);
   printf("%s\n", body);
 
   char msg[1024];
@@ -48,7 +54,7 @@ void spotify_init(){
   if(initialised) return;
   // Init lwjson
   lwjson_init(&lwjson, tokens, LWJSON_ARRAYSIZE(tokens));
-  refresh_token();
+  get_token();
 }
 
 void sync_playback(){
@@ -88,7 +94,24 @@ void previous(){
 void parse_response(void *arg){
   char *res = (char*)arg;
 
-  if (lwjson_parse(&lwjson, res) == lwjsonOK) {
+  char *body = strtok(res, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  body = strtok(NULL, "\r\n");
+  printf("Body: %s\n", body);
+
+  if (lwjson_parse(&lwjson, body) == lwjsonOK) {
     const lwjson_token_t* t;
 
     /* Find custom key in JSON */
@@ -105,11 +128,12 @@ void parse_response(void *arg){
       access_token = t->u.str.token_value;
       if((t = lwjson_find(&lwjson, "token_type")) != NULL){
         token_type = t->u.str.token_value;
-      }
+      } else return;
       
       if((t = lwjson_find(&lwjson, "expires_in")) != NULL){
         token_expiry = t->u.num_int;
-      }
+      } else return;
+
       sync_playback();
     } else {
       printf("Token not found!\n");
