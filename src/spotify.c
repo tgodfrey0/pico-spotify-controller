@@ -14,10 +14,12 @@ extern char* authorisation_code;
 extern char *client_id;
 extern char *client_secret;
 
-extern char* access_token;
-extern char* token_type;
-extern uint16_t token_expiry;
-extern char* refresh_token;
+char *access_token;
+char *token_type;
+uint16_t token_expiry;
+char* refresh_token;
+
+extern bool ready;
 
 extern char *server;
 extern char *cmd_get_playback;
@@ -32,7 +34,22 @@ static lwjson_t lwjson;
 volatile bool playing = false;
 bool initialised = false;
 
-void renew_token(){}
+void renew_token(){
+  printf("Renewing token\n");
+  char token_secret[strlen(client_id) + 1 + strlen(client_secret)];
+  sprintf(token_secret, "%s:%s", client_id, client_secret);
+
+  char *encoded_token = b64_encode(token_secret, strlen(token_secret));
+
+  char body[strlen(refresh_token) + 39];
+  sprintf(body, "grant_type=refresh_token&refresh_token=%s", refresh_token);
+  uint16_t body_size = strlen(body);
+
+  char msg[strlen(encoded_token) + body_size + 2 + 49];
+  sprintf(msg, "POST /api/token HTTP/1.1\r\nHost: accounts.spotify.com\r\nAuthorization: Basic %s\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\n%s\r\n", encoded_token, body_size, body);
+
+  tls_client_send_data_raw(msg);
+}
 
 void get_token(){
   char token_secret[strlen(client_id) + 1 + strlen(client_secret)];
@@ -40,13 +57,13 @@ void get_token(){
 
   char *encoded_token = b64_encode(token_secret, strlen(token_secret));
 
-  char body[strlen(authorisation_code) + 96];
+  char body[strlen(authorisation_code) + 79];
   sprintf(body, "grant_type=authorization_code&code=%s&redirect_uri=http://localhost:8888/callback", authorisation_code);
-  printf("%s\n", body);
+  uint16_t body_size = strlen(body);
 
   char msg[1024];
-
   sprintf(msg, "POST /api/token HTTP/1.1\r\nHost: accounts.spotify.com\r\nAuthorization: Basic %s\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\n%s\r\n", encoded_token, strlen(body), body);
+
   tls_client_send_data_raw(msg);
 }
 
@@ -92,6 +109,11 @@ void previous(){
 }
 
 void parse_response(void *arg){
+  if(!arg){
+    printf("Null data passed to parser");
+    return;
+  }
+
   char *res = (char*)arg;
 
   char *body = strtok(res, "\r\n");
@@ -109,7 +131,6 @@ void parse_response(void *arg){
   body = strtok(NULL, "\r\n");
   body = strtok(NULL, "\r\n");
   body = strtok(NULL, "\r\n");
-  printf("Body: %s\n", body);
 
   if (lwjson_parse(&lwjson, body) == lwjsonOK) {
     const lwjson_token_t* t;
@@ -126,15 +147,30 @@ void parse_response(void *arg){
       }
     } else if((t = lwjson_find(&lwjson, "access_token")) != NULL){
       access_token = t->u.str.token_value;
+      access_token[t->u.str.token_value_len] = '\0';
       if((t = lwjson_find(&lwjson, "token_type")) != NULL){
         token_type = t->u.str.token_value;
-      } else return;
+        token_type[t->u.str.token_value_len] = '\0';
+      } else {
+        printf("Cannot find token type\n");
+        return;
+      }
       
       if((t = lwjson_find(&lwjson, "expires_in")) != NULL){
         token_expiry = t->u.num_int;
-      } else return;
+      } else {
+        printf("Cannot find token expiration\n");
+        return;
+      }
 
-      sync_playback();
+      if((t = lwjson_find(&lwjson, "refresh_token")) != NULL){
+        refresh_token = t->u.str.token_value;
+        refresh_token[t->u.str.token_value_len] = '\0';
+      }
+
+      printf("\nToken: %s\nExpires in: %d\nRefresh Token: %s\n\n", access_token, token_expiry, refresh_token);
+      //sync_playback();
+      if(!ready) ready = true;
     } else {
       printf("Token not found!\n");
     }

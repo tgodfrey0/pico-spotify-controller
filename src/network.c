@@ -26,6 +26,8 @@ extern const char *server;
 extern struct altcp_pcb *pcb;
 extern struct altcp_tls_config *tls_config;
 
+extern bool connected;
+
 err_t tls_client_close() {
 	err_t err = ERR_OK;
 
@@ -49,6 +51,7 @@ err_t tls_client_send_data_raw(char *msg){
 	printf("Sending %s", msg);
 
 	err_t err = altcp_write(pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
+	altcp_output(pcb);
 	if(err != ERR_OK){
 		printf("Error writing data");
 		return tls_client_close();
@@ -60,7 +63,7 @@ err_t tls_client_send_data_raw(char *msg){
 err_t tls_client_send_data(char *data){
 	char msg[strlen(data) + strlen(server) + 40];
 	sprintf(msg, "%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\nAuthorization: Bearer %s\r\n\r\n", data, server, access_token);
-	tls_client_send_data_raw(msg);
+	return tls_client_send_data_raw(msg);
 }
 
 err_t tls_client_connected(void *arg, struct altcp_pcb *pcb, err_t err) {
@@ -84,21 +87,16 @@ err_t tls_client_recv(void *arg, struct altcp_pcb *pcb, struct pbuf *p, err_t er
 		return tls_client_close();
 	}
 
+	char* data;
+
 	if (p->tot_len > 0) {
-		/* For simplicity this examples creates a buffer on stack the size of the data pending here, 
-					 and copies all the data to it in one go.
-					 Do be aware that the amount of data can potentially be a bit large (TLS record size can be 16 KB),
-					 so you may want to use a smaller fixed size buffer and copy the data to it using a loop, if memory is a concern */
-		char buf[p->tot_len + 1];
-
-		pbuf_copy_partial(p, buf, p->tot_len, 0);
-		buf[p->tot_len] = 0;
-
-		printf("***\nnew data received from server:\n***\n\n%s\n", buf);
-		parse_response(p->payload);
+		data = (char*)p->payload;
+		printf("***\nnew data received from server:\n***\n\n%s\n\n", data);
 		altcp_recved(pcb, p->tot_len);
 	}
+
 	pbuf_free(p);
+	parse_response(data);
 
 	return ERR_OK;
 }

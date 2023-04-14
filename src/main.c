@@ -20,9 +20,11 @@
 struct altcp_pcb *pcb;
 struct altcp_tls_config *tls_config = NULL;
 
-bool connected = false;
+extern uint16_t token_expiry;
 
 extern lwjson_t lwjson;
+
+bool ready = false;
 
 int main() {
   stdio_init_all();
@@ -44,8 +46,18 @@ int main() {
   }
 
   // Setup interrupts
+  
+  while(!ready){
+    busy_wait_ms(100);
+  }
 
-  for(;;){}
+  renew_token();
+  return 0;
+
+  while(true){
+    sleep_ms((token_expiry - 30) * 1000);
+    renew_token();
+  }
 
   lwjson_free(&lwjson);
   cyw43_arch_deinit();
