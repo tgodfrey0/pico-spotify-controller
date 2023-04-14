@@ -34,6 +34,14 @@ static lwjson_t lwjson;
 volatile bool playing = false;
 bool initialised = false;
 
+
+
+
+// TODO: CLOSE CONNECTION AFTER EACH RESPONSE IS RECEIVED?
+
+
+
+
 void renew_token(){
   printf("Renewing token\n");
   char token_secret[strlen(client_id) + 1 + strlen(client_secret)];

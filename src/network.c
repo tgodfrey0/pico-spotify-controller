@@ -91,7 +91,7 @@ err_t tls_client_recv(void *arg, struct altcp_pcb *pcb, struct pbuf *p, err_t er
 
 	if (p->tot_len > 0) {
 		data = (char*)p->payload;
-		printf("***\nnew data received from server:\n***\n\n%s\n\n", data);
+		printf("***\nnew data received from server:\n***\n\n%s\n\n***\n", data);
 		altcp_recved(pcb, p->tot_len);
 	}
 
