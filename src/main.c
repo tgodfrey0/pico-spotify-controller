@@ -51,9 +51,6 @@ int main() {
     busy_wait_ms(100);
   }
 
-  renew_token();
-  return 0;
-
   while(true){
     sleep_ms((token_expiry - 30) * 1000);
     renew_token();

@@ -1,6 +1,7 @@
 #include "hardware/timer.h"
 #include "pico/stdlib.h"
 
+#include "pico/time.h"
 #include "src/spotify.h"
 
 #include "lwjson/lwjson.h"
@@ -32,15 +33,9 @@ static lwjson_token_t tokens[128];
 static lwjson_t lwjson;
 
 volatile bool playing = false;
+volatile uint32_t progress_ms = 0;
+volatile bool synchronise_in_progress = false;
 bool initialised = false;
-
-
-
-
-// TODO: CLOSE CONNECTION AFTER EACH RESPONSE IS RECEIVED?
-
-
-
 
 void renew_token(){
   printf("Renewing token\n");
@@ -84,7 +79,13 @@ void spotify_init(){
 
 void sync_playback(){
   if(initialised) return;
+
+  synchronise_in_progress = true;
   tls_client_send_data(cmd_get_playback);
+  //while(synchronise_in_progress){
+    //printf("Waiting for sync\n");
+    //sleep_ms(100);
+  //};
 }
 
 void togglePlayback(){
@@ -94,25 +95,34 @@ void togglePlayback(){
   } else {
     play();
   }
+  playing = !playing;
 }
 
 void play(){
   if(initialised) return;
-  tls_client_send_data(cmd_play);
+  sync_playback();
+
+  char body[15 + 4];
+  sprintf(body, "{\"position_ms\":%d}", progress_ms);
+
+  tls_client_send_data_with_body(cmd_play, "application/json", body);
 }
 
 void pause(){
   if(initialised) return;
+  sync_playback();
   tls_client_send_data(cmd_pause);
 }
 
 void next(){
   if(initialised) return;
+  sync_playback();
   tls_client_send_data(cmd_next);
 }
 
 void previous(){
   if(initialised) return;
+  sync_playback();
   tls_client_send_data(cmd_previous);
 }
 
@@ -144,7 +154,13 @@ void parse_response(void *arg){
     const lwjson_token_t* t;
 
     /* Find custom key in JSON */
-    if ((t = lwjson_find(&lwjson, "is_playing")) != NULL) {
+    if ((t = lwjson_find(&lwjson, "error_description")) != NULL) {
+      char *e = t->u.str.token_value;
+      e[t->u.str.token_value_len] = '\0';
+      printf("ERROR: %s\n", e);
+      synchronise_in_progress = false;
+    }
+    else if ((t = lwjson_find(&lwjson, "is_playing")) != NULL) {
       printf("Token found\n");
       if(t->type == LWJSON_TYPE_TRUE){
         playing = true;
@@ -153,6 +169,10 @@ void parse_response(void *arg){
       } else {
         printf("Invalid is_playing value\n");
       }
+      if((t = lwjson_find(&lwjson, "progress_ms")) != NULL){
+        if(t->type == LWJSON_TYPE_NUM_INT) progress_ms = t->u.num_int;
+      }
+      synchronise_in_progress = false;
     } else if((t = lwjson_find(&lwjson, "access_token")) != NULL){
       access_token = t->u.str.token_value;
       access_token[t->u.str.token_value_len] = '\0';
@@ -177,8 +197,9 @@ void parse_response(void *arg){
       }
 
       printf("\nToken: %s\nExpires in: %d\nRefresh Token: %s\n\n", access_token, token_expiry, refresh_token);
-      //sync_playback();
       if(!ready) ready = true;
+      sleep_ms(3000);
+      sync_playback();
     } else {
       printf("Token not found!\n");
     }

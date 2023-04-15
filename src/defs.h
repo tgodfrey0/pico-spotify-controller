@@ -2,6 +2,7 @@
 #define DEFS_H
 
 #include "pico/stdlib.h"
+#include <stdint.h>
 
 #define TLS_CLIENT_HTTP_REQUEST  "GET /api/ip HTTP/1.1\r\n" \
 	"Host: " TLS_CLIENT_server "\r\n" \

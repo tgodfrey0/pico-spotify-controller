@@ -16,6 +16,8 @@
 #include "network.h"
 #include "spotify.h"
 
+#define BUFSIZE								4096
+
 extern char* access_token;
 extern char* token_type;
 extern uint16_t token_expiry;
@@ -27,6 +29,8 @@ extern struct altcp_pcb *pcb;
 extern struct altcp_tls_config *tls_config;
 
 extern bool connected;
+
+char packet[BUFSIZE];
 
 err_t tls_client_close() {
 	err_t err = ERR_OK;
@@ -61,9 +65,39 @@ err_t tls_client_send_data_raw(char *msg){
 }
 
 err_t tls_client_send_data(char *data){
-	char msg[strlen(data) + strlen(server) + 40];
-	sprintf(msg, "%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\nAuthorization: Bearer %s\r\n\r\n", data, server, access_token);
-	return tls_client_send_data_raw(msg);
+	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + 87;
+	if(msg_size > BUFSIZE){
+		printf("Message too big!\n");
+		return ERR_RST;
+	}
+	memset(packet, 0, BUFSIZE);
+	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s/v1\r\nConnection: close\r\nAuthorization: Bearer %s\r\n\r\n", data, server, access_token);
+	err_t err = tls_client_send_data_raw(packet);
+	return err;
+}
+
+err_t tls_client_send_data_with_headers(char *data, char *additional_headers){
+	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + strlen(additional_headers) + 68;
+	if(msg_size > BUFSIZE){
+		printf("Message too big!\n");
+		return ERR_RST;
+	}
+	memset(packet, 0, BUFSIZE);
+	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s/v1\r\nConnection: close\r\nAuthorization: Bearer %s\r\n%s\r\n", data, server, access_token, additional_headers);
+	err_t err = tls_client_send_data_raw(packet);
+	return err;
+}
+
+err_t tls_client_send_data_with_body(char *cmd, char *data_format, char* body){
+	uint16_t msg_size = strlen(cmd) + strlen(server) + strlen(access_token) + strlen(data_format) + sizeof(strlen(body)) + strlen(body) + 103;
+	if(msg_size > BUFSIZE){
+		printf("Message too big!\n");
+		return ERR_RST;
+	}
+	memset(packet, 0, BUFSIZE);
+	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s/v1\r\nConnection: close\r\nAuthorization: Bearer %s\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n%s\r\n", cmd, server, access_token, data_format, strlen(body), body);
+	err_t err = tls_client_send_data_raw(packet);
+	return err;
 }
 
 err_t tls_client_connected(void *arg, struct altcp_pcb *pcb, err_t err) {
