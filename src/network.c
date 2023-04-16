@@ -57,11 +57,15 @@ err_t tls_client_close() {
 err_t tls_client_send_data_raw(const char *msg){
 	printf("Sending %s", msg);
 	err_t err = altcp_write(pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
-	altcp_output(pcb);
+	printf("Writen to stream\n");
+	//altcp_output(pcb);
+	printf("Stream pushed\n");
 	if(err != ERR_OK){
 		printf("Error writing data");
 		return tls_client_close();
 	}
+
+	printf("Data sent\n");
 
 	return ERR_OK;
 }
@@ -73,8 +77,10 @@ err_t tls_client_send_data(char *data){
 		return ERR_RST;
 	}
 
+	printf("Clearing message buffer\n");
 	memset(packet, 0, BUFSIZE);
 	sprintf(packet, "%s HTTP/1.1\r\nHost: %s\r\nContent-Length: 0\r\nAuthorization: Bearer %s\r\n\r\n", data, server, access_token);
+	printf("Message written to buffer\n");
 	err_t err = tls_client_send_data_raw(packet);
 	return err;
 }
@@ -125,11 +131,10 @@ err_t tls_client_recv(void *arg, struct altcp_pcb *pcb, struct pbuf *p, err_t er
 		return tls_client_close();
 	}
 
-	char* data = calloc(p->tot_len+1, sizeof(char));
+	char* data;
 
 	if (p->tot_len > 0) {
 		data = (char*)p->payload;
-		data[p->tot_len] = '\0';
 		printf("***\nnew data received from server:\n***\n\n%s\n\n***\n", data);
 		altcp_recved(pcb, p->tot_len);
 	}
