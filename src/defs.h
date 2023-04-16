@@ -21,12 +21,12 @@
 #define LED_B                 11
 
 // Request Strings
-char *server = "api.spotify.com";
+const char* const server = "api.spotify.com";
 
-char *cmd_get_playback = "GET /v1/me/player";
-char *cmd_play = "PUT /v1/me/player/play";
-char *cmd_pause = "PUT /v1/me/player/pause";
-char *cmd_next = "PUT /v1/me/player/next";
-char *cmd_previous = "PUT /v1/me/player/previous";
+const char* const cmd_get_playback = "GET /v1/me/player";
+const char* const cmd_play = "PUT /v1/me/player/play";
+const char* const cmd_pause = "PUT /v1/me/player/pause";
+const char* const cmd_next = "POST /v1/me/player/next";
+const char* const cmd_previous = "POST /v1/me/player/previous";
 
 #endif /* DEFS_H */

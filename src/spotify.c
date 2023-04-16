@@ -1,6 +1,7 @@
 #include "hardware/timer.h"
 #include "pico/stdlib.h"
-
+#include "hardware/gpio.h"
+#include "hardware/sync.h"
 #include "pico/time.h"
 #include "src/spotify.h"
 
@@ -15,10 +16,10 @@ extern char* authorisation_code;
 extern char *client_id;
 extern char *client_secret;
 
-char *access_token;
-char *token_type;
+char *access_token = NULL;
+char *token_type = NULL;
 uint16_t token_expiry;
-char* refresh_token;
+char *refresh_token = NULL;
 
 extern bool ready;
 
@@ -79,13 +80,15 @@ void spotify_init(){
 
 void sync_playback(){
   if(!initialised) return;
+  return;
 
-  synchronise_in_progress = true;
   tls_client_send_data(cmd_get_playback);
 }
 
-void togglePlayback(){
+void togglePlayback(uint gpio, uint32_t events){
   if(!initialised) return;
+  uint32_t state = save_and_disable_interrupts();
+  printf("Toggle playback pressed\n");
   sync_playback();
   if(playing){
     pause();
@@ -93,27 +96,53 @@ void togglePlayback(){
     play();
   }
   playing = !playing;
+  restore_interrupts(state);
 }
 
 void play(){
+
   char body[15 + 4];
   sprintf(body, "{\"position_ms\":%d}", progress_ms);
 
   tls_client_send_data_with_body(cmd_play, "application/json", body);
+
 }
 
 void pause(){
+  uint32_t state = save_and_disable_interrupts();
   tls_client_send_data(cmd_pause);
+  restore_interrupts(state);
 }
 
-void next(){
+void next(uint gpio, uint32_t events){
+  uint32_t state = save_and_disable_interrupts();
+  printf("Next pressed\n");
   if(!initialised) return;
   tls_client_send_data(cmd_next);
+  restore_interrupts(state);
 }
 
-void previous(){
+void previous(uint gpio, uint32_t events){
+  uint32_t state = save_and_disable_interrupts();
+  printf("Previous pressed\n");
   if(!initialised) return;
   tls_client_send_data(cmd_previous);
+  restore_interrupts(state);
+}
+
+void test(){
+  printf("\n\nPAUSE TEST\n");
+  pause();
+  busy_wait_ms(3000);
+  printf("PLAY TEST\n");
+  play();
+  busy_wait_ms(3000);
+  printf("NEXT TEST\n");
+  next(0, 0);
+  busy_wait_ms(3000);
+  printf("PREVIOUS TEST\n");
+  previous(0, 0);
+  busy_wait_ms(3000);
 }
 
 void parse_response(void *arg){
@@ -134,7 +163,7 @@ void parse_response(void *arg){
     printf("Successful response");
     return;
   } else if(strncmp(status, "4xx", 1) == 0){
-    printf("Error");
+    printf("Error response\n");
     return;
   }
 
@@ -181,13 +210,23 @@ void parse_response(void *arg){
       if((t = lwjson_find(&lwjson, "progress_ms")) != NULL){
         if(t->type == LWJSON_TYPE_NUM_INT) progress_ms = t->u.num_int;
       }
-      synchronise_in_progress = false;
     } else if((t = lwjson_find(&lwjson, "access_token")) != NULL){
-      access_token = t->u.str.token_value;
-      access_token[t->u.str.token_value_len] = '\0';
+      if(access_token != NULL){
+        free(access_token);
+        access_token = NULL;
+      }
+      access_token = calloc(t->u.str.token_value_len + 1, sizeof(char));
+      strncpy(access_token, t->u.str.token_value, t->u.str.token_value_len);
+      strncat(access_token, "\0", 1);
+
       if((t = lwjson_find(&lwjson, "token_type")) != NULL){
-        token_type = t->u.str.token_value;
-        token_type[t->u.str.token_value_len] = '\0';
+        if(token_type != NULL){
+          free(token_type);
+          token_type = NULL;
+        }
+        token_type = calloc(t->u.str.token_value_len + 1, sizeof(char));
+        strncpy(token_type, t->u.str.token_value, t->u.str.token_value_len);
+        strncat(token_type, "\0", 1);
       } else {
         printf("Cannot find token type\n");
         return;
@@ -201,20 +240,23 @@ void parse_response(void *arg){
       }
 
       if((t = lwjson_find(&lwjson, "refresh_token")) != NULL){
-        refresh_token = t->u.str.token_value;
-        refresh_token[t->u.str.token_value_len] = '\0';
+        if(refresh_token != NULL){
+          free(refresh_token);
+          refresh_token = NULL;
+        }
+        refresh_token = calloc(t->u.str.token_value_len + 1, sizeof(char));
+        strncpy(refresh_token, t->u.str.token_value, t->u.str.token_value_len);
+        strncat(refresh_token, "\0", 1);
       }
 
       printf("\nToken: %s\nExpires in: %d\nRefresh Token: %s\n\n", access_token, token_expiry, refresh_token);
       if(!ready) ready = true;
       if(!initialised) initialised = true;
       busy_wait_ms(3000);
-      pause();
-      //sync_playback();
+      sync_playback();
     } else {
       printf("Token not found!\n");
     }
-
   } else {
     printf("Failed to parse response\n");
   }

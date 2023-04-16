@@ -8,7 +8,7 @@
 
 err_t tls_client_close();
 err_t tls_client_connected(void *arg, struct altcp_pcb *pcb, err_t err);
-err_t tls_client_send_data_raw(char *msg);
+err_t tls_client_send_data_raw(const char *msg);
 err_t tls_client_send_data(char *msg);
 err_t tls_client_send_data_with_headers(char *msg, char *additional_headers);
 err_t tls_client_send_data_with_body(char *cmd, char *data_format, char* body);

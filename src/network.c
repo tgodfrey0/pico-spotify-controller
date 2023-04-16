@@ -30,11 +30,14 @@ extern struct altcp_tls_config *tls_config;
 
 extern bool connected;
 
-char packet[BUFSIZE];
+static const char *packet;
 
 err_t tls_client_close() {
 	err_t err = ERR_OK;
-
+	if(packet != NULL){
+		free((void*)packet);
+		packet = NULL;
+	}
 	if (pcb != NULL) {
 		altcp_arg(pcb, NULL);
 		altcp_poll(pcb, NULL, 0);
@@ -51,7 +54,7 @@ err_t tls_client_close() {
 	return err;
 }
 
-err_t tls_client_send_data_raw(char *msg){
+err_t tls_client_send_data_raw(const char *msg){
 	printf("Sending %s", msg);
 
 	err_t err = altcp_write(pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
@@ -65,37 +68,43 @@ err_t tls_client_send_data_raw(char *msg){
 }
 
 err_t tls_client_send_data(char *data){
-	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + 108;
+	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + 64;
 	if(msg_size > BUFSIZE){
 		printf("Message too big!\n");
 		return ERR_RST;
 	}
+
 	memset(packet, 0, BUFSIZE);
-	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nContent-Length: 0\r\nAuthorization: Bearer %s\r\n\r\n", data, server, access_token);
+	printf("MSG1 - nulled: %s\n", packet);
+	printf("server: %s\n", server);
+	printf("at: %s\n", access_token);
+	sprintf(packet, "%s HTTP/1.1\r\nHost: %s\r\nContent-Length: 0\r\nAuthorization: Bearer %s\r\n\r\n", data, server, access_token);
+	printf("MSG2 - desired msg (%s): %s\n", data, packet);
+	return ERR_OK;
 	err_t err = tls_client_send_data_raw(packet);
 	return err;
 }
 
 err_t tls_client_send_data_with_headers(char *data, char *additional_headers){
-	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + strlen(additional_headers) + 70;
+	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + strlen(additional_headers) + 64;
 	if(msg_size > BUFSIZE){
 		printf("Message too big!\n");
 		return ERR_RST;
 	}
 	memset(packet, 0, BUFSIZE);
-	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nAuthorization: Bearer %s\r\n%s\r\n", data, server, access_token, additional_headers);
+	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s\r\nAuthorization: Bearer %s\r\nContent-Length: 0\r\n%s\r\n", data, server, access_token, additional_headers);
 	err_t err = tls_client_send_data_raw(packet);
 	return err;
 }
 
 err_t tls_client_send_data_with_body(char *cmd, char *data_format, char* body){
-	uint16_t msg_size = strlen(cmd) + strlen(server) + strlen(access_token) + strlen(data_format) + sizeof(strlen(body)) + strlen(body) + 105;
+	uint16_t msg_size = strlen(cmd) + strlen(server) + strlen(access_token) + strlen(data_format) + sizeof(strlen(body)) + strlen(body) + 81;
 	if(msg_size > BUFSIZE){
 		printf("Message too big!\n");
 		return ERR_RST;
 	}
 	memset(packet, 0, BUFSIZE);
-	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nAuthorization: Bearer %s\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n%s\r\n", cmd, server, access_token, data_format, strlen(body), body);
+	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s\r\nAuthorization: Bearer %s\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n%s\r\n", cmd, server, access_token, data_format, strlen(body), body);
 	err_t err = tls_client_send_data_raw(packet);
 	return err;
 }
@@ -207,6 +216,7 @@ bool tls_client_init(void) {
 	tls_config = altcp_tls_create_config_client(NULL, 0);
 
 	pcb = calloc(1, sizeof(struct altcp_pcb));
+	packet = calloc(0, sizeof(char));
 
 	if (!pcb) {
 		printf("Failed to allocate state\n");

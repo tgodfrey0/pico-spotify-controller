@@ -2,6 +2,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "hardware/gpio.h"
 #include "hardware/timer.h"
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
@@ -51,9 +52,13 @@ int main() {
     busy_wait_ms(100);
   }
 
-  busy_wait_ms(3000);
   //togglePlayback();
-  //pause();
+  printf("IN MAIN\n");
+  
+  gpio_set_irq_enabled_with_callback(21, GPIO_IRQ_EDGE_FALL, true, &togglePlayback);
+  gpio_set_irq_enabled_with_callback(20, GPIO_IRQ_EDGE_FALL, true, &previous);
+  gpio_set_irq_enabled_with_callback(22, GPIO_IRQ_EDGE_FALL, true, &next);
+  //tls_client_send_data(cmd_pause);
   //busy_wait_ms(3000);
   //play();
   //busy_wait_ms(3000);
@@ -61,7 +66,6 @@ int main() {
   //busy_wait_ms(3000);
   //previous();
   //busy_wait_ms(3000);
-  return 0;
 
   while(true){
     sleep_ms((token_expiry - 30) * 1000);
