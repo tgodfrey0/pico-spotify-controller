@@ -32,6 +32,9 @@ extern bool connected;
 
 static const char *packet;
 
+/**
+ * Close the TLS client
+ */
 err_t tls_client_close() {
 	err_t err = ERR_OK;
 	if(packet != NULL){
@@ -54,6 +57,9 @@ err_t tls_client_close() {
 	return err;
 }
 
+/**
+ * Send the data over the TLS/TCP socket
+ */
 err_t tls_client_send_data_raw(const char *msg){
 	printf("Sending %s", msg);
 	err_t err = altcp_write(pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
@@ -70,6 +76,11 @@ err_t tls_client_send_data_raw(const char *msg){
 	return ERR_OK;
 }
 
+/**
+ * Convert a command into a HTTP request and send it
+ *
+ * @param data is the command to include 
+ */
 err_t tls_client_send_data(char *data){
 	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + 64;
 	if(msg_size > BUFSIZE){
@@ -85,6 +96,12 @@ err_t tls_client_send_data(char *data){
 	return err;
 }
 
+/**
+ * Make a HTTP request with extra headers and send it
+ *
+ * @param data									the command to include
+ * @param additional_headers		the headers to include
+ */
 err_t tls_client_send_data_with_headers(char *data, char *additional_headers){
 	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + strlen(additional_headers) + 64;
 	if(msg_size > BUFSIZE){
@@ -97,6 +114,13 @@ err_t tls_client_send_data_with_headers(char *data, char *additional_headers){
 	return err;
 }
 
+/**
+ * Make a HTTP request with a body
+ *
+ * @param data						the command to include
+ * @param data_format			the content type of the body
+ * @param body						the body to include
+ */
 err_t tls_client_send_data_with_body(char *cmd, char *data_format, char* body){
 	uint16_t msg_size = strlen(cmd) + strlen(server) + strlen(access_token) + strlen(data_format) + sizeof(strlen(body)) + strlen(body) + 81;
 	if(msg_size > BUFSIZE){
@@ -109,6 +133,13 @@ err_t tls_client_send_data_with_body(char *cmd, char *data_format, char* body){
 	return err;
 }
 
+/**
+ * The callback for when it connects to the server
+ *
+ * @param arg			the designated callback argument
+ * @param pcb			the PCB that connected
+ * @param err			any error codes
+ */
 err_t tls_client_connected(void *arg, struct altcp_pcb *pcb, err_t err) {
 	if (err != ERR_OK) {
 		printf("Connect failed %d\n", err);
@@ -119,11 +150,25 @@ err_t tls_client_connected(void *arg, struct altcp_pcb *pcb, err_t err) {
 	return ERR_OK;
 }
 
+/**
+ * Callback for a critical error
+ *
+ * @param arg			the designated callback argument
+ * param err			the error code
+ */
 void tls_client_err(void *arg, err_t err) {
 	printf("CRITICAL ERROR - %d\n", err);
 	pcb = NULL; /* pcb freed by lwip when _err function is called */
 }
 
+/**
+ * The callback when data is received
+ *
+ * @param arg			the designated callback argument
+ * @param pcb			the PCB which received data
+ * @param p				the PBUF struct holding the response
+ * @param err			any error codes
+ */
 err_t tls_client_recv(void *arg, struct altcp_pcb *pcb, struct pbuf *p, err_t err) {
 	printf("DATA RECEIVED\n");
 	if (!p) {
@@ -145,6 +190,11 @@ err_t tls_client_recv(void *arg, struct altcp_pcb *pcb, struct pbuf *p, err_t er
 	return ERR_OK;
 }
 
+/**
+ * Connect the socket to the server
+ *
+ * @param ipaddr			the IP of the server
+ */
 void tls_client_connect_to_server_ip(const ip_addr_t *ipaddr)
 {
 	err_t err;
@@ -159,6 +209,13 @@ void tls_client_connect_to_server_ip(const ip_addr_t *ipaddr)
 	}
 }
 
+/**
+ * The callback when the DNS server returns an IP address
+ *
+ * @param hostname			the name that was looked up
+ * @param	ipaddr				the IP address of the hostname
+ * @param arg						the designated callback argument
+ */
 void tls_client_dns_found(const char* hostname, const ip_addr_t *ipaddr, void *arg)
 {
 	if (ipaddr)
@@ -173,7 +230,11 @@ void tls_client_dns_found(const char* hostname, const ip_addr_t *ipaddr, void *a
 	}
 }
 
-
+/**
+ * Open a TLS client
+ *
+ * @param hostname			the hostname to find
+ */
 bool tls_client_open(const char *hostname) {
 	err_t err;
 	ip_addr_t server_ip;
@@ -193,10 +254,6 @@ bool tls_client_open(const char *hostname) {
 
 	printf("resolving %s\n", hostname);
 
-	// cyw43_arch_lwip_begin/end should be used around calls into lwIP to ensure correct locking.
-	// You can omit them if you are in a callback from lwIP. Note that when using pico_cyw_arch_poll
-	// these calls are a no-op and can be omitted, but it is a good practice to use them in
-	// case you switch the cyw43_arch type later.
 	cyw43_arch_lwip_begin();
 
 	err = dns_gethostbyname(hostname, &server_ip, tls_client_dns_found, NULL);
@@ -213,6 +270,9 @@ bool tls_client_open(const char *hostname) {
 	return err == ERR_OK || err == ERR_INPROGRESS;
 }
 
+/**
+ * Initialise a TLS client
+ */
 bool tls_client_init(void) {
 	tls_config = altcp_tls_create_config_client(NULL, 0);
 

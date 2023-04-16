@@ -35,6 +35,9 @@ static lwjson_t lwjson;
 
 bool initialised = false;
 
+/**
+* Use the refresh token to get a new access token
+*/
 void renew_token(){
   printf("Renewing token\n");
   char token_secret[strlen(client_id) + 1 + strlen(client_secret)];
@@ -52,6 +55,9 @@ void renew_token(){
   tls_client_send_data_raw(msg);
 }
 
+/**
+* Get an access token using the authorisation token
+*/
 void get_token(){
   char token_secret[strlen(client_id) + 1 + strlen(client_secret)];
   sprintf(token_secret, "%s:%s", client_id, client_secret);
@@ -68,6 +74,9 @@ void get_token(){
   tls_client_send_data_raw(msg);
 }
 
+/**
+* Initialise the spotify structures and get a token
+*/
 void spotify_init(){
   if(initialised) return;
   // Init lwjson
@@ -106,6 +115,9 @@ void previous(){
   restore_interrupts(state);
 }
 
+/**
+* Parse the response received from the API server
+*/
 void parse_response(void *arg){
   if(!arg){
     printf("Null data passed to parser");
