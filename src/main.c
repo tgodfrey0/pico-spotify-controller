@@ -28,24 +28,6 @@ extern lwjson_t lwjson;
 bool ready = false;
 
 void button_isr(uint gpio, uint32_t state){
-  switch (gpio) {
-    case 10:
-      printf("Button 10 pressed\n");
-      previous();
-      break;
-    case 11:
-      printf("Button 11 pressed\n");
-      play();
-      break;
-    case 12:
-      printf("Button 12 pressed\n");
-      pause();
-      break;
-    case 13:
-      printf("Button 13 pressed\n");
-      next();
-      break;
-  }
 }
 
 int main() {
@@ -67,13 +49,10 @@ int main() {
     printf("Failed to initialise TLS client");
   }
 
-  // Setup interrupts
-  
   while(!ready){
     busy_wait_ms(100);
   }
 
-  //togglePlayback();
   printf("IN MAIN\n");
  
   gpio_set_irq_enabled_with_callback(10, GPIO_IRQ_EDGE_FALL, true, &button_isr);
