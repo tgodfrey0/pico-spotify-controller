@@ -24,7 +24,8 @@ This project uses the [Authorisation Code Flow](https://developer.spotify.com/do
 
 First you need an authorisation token. To do so, you can send a GET request to the `/authorize` endpoint. I pasted the following URL into a browser and stored the `code` parameter that is returned. 
 
-```https://accounts.spotify.com/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope=app-remote-control%20streaming%20user-read-playback-state%20user-modify-playback-state%20user-read-currently-playing&show_dialog
+```
+https://accounts.spotify.com/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope=app-remote-control%20streaming%20user-read-playback-state%20user-modify-playback-state%20user-read-currently-playing&show_dialog
 ```
 
 This redirects to the callback uri and has a `code` parameter in the uri which is the authorisation code.
