@@ -78,18 +78,15 @@ void spotify_init(){
 }
 
 void sync_playback(){
-  if(initialised) return;
+  if(!initialised) return;
 
   synchronise_in_progress = true;
   tls_client_send_data(cmd_get_playback);
-  //while(synchronise_in_progress){
-    //printf("Waiting for sync\n");
-    //sleep_ms(100);
-  //};
 }
 
 void togglePlayback(){
-  if(initialised) return;
+  if(!initialised) return;
+  sync_playback();
   if(playing){
     pause();
   } else {
@@ -99,9 +96,6 @@ void togglePlayback(){
 }
 
 void play(){
-  if(initialised) return;
-  sync_playback();
-
   char body[15 + 4];
   sprintf(body, "{\"position_ms\":%d}", progress_ms);
 
@@ -109,20 +103,16 @@ void play(){
 }
 
 void pause(){
-  if(initialised) return;
-  sync_playback();
   tls_client_send_data(cmd_pause);
 }
 
 void next(){
-  if(initialised) return;
-  sync_playback();
+  if(!initialised) return;
   tls_client_send_data(cmd_next);
 }
 
 void previous(){
-  if(initialised) return;
-  sync_playback();
+  if(!initialised) return;
   tls_client_send_data(cmd_previous);
 }
 
@@ -135,6 +125,19 @@ void parse_response(void *arg){
   char *res = (char*)arg;
 
   char *body = strtok(res, "\r\n");
+
+  //char *status;
+  //strncpy(status, body, strlen(body));
+  //status = strtok(status, " ");
+  //status = strtok(NULL, " ");
+  //if(strncmp(status, "204", 3) == 0){
+  //  printf("Successful response");
+  //  return;
+  //} else if(strncmp(status, "4xx", 1) == 0){
+  //  printf("Error");
+  //  return;
+  //}
+
   body = strtok(NULL, "\r\n");
   body = strtok(NULL, "\r\n");
   body = strtok(NULL, "\r\n");
@@ -149,6 +152,11 @@ void parse_response(void *arg){
   body = strtok(NULL, "\r\n");
   body = strtok(NULL, "\r\n");
   body = strtok(NULL, "\r\n");
+
+  if(strcmp(body, "empty response") == 0){
+    printf("Empty response\n");
+    return;
+  }
 
   if (lwjson_parse(&lwjson, body) == lwjsonOK) {
     const lwjson_token_t* t;
@@ -198,8 +206,10 @@ void parse_response(void *arg){
 
       printf("\nToken: %s\nExpires in: %d\nRefresh Token: %s\n\n", access_token, token_expiry, refresh_token);
       if(!ready) ready = true;
-      sleep_ms(3000);
-      sync_playback();
+      if(!initialised) initialised = true;
+      busy_wait_ms(3000);
+      tls_client_send_data(cmd_pause);
+      //sync_playback();
     } else {
       printf("Token not found!\n");
     }

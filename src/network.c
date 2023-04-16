@@ -65,37 +65,37 @@ err_t tls_client_send_data_raw(char *msg){
 }
 
 err_t tls_client_send_data(char *data){
-	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + 87;
+	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + 108;
 	if(msg_size > BUFSIZE){
 		printf("Message too big!\n");
 		return ERR_RST;
 	}
 	memset(packet, 0, BUFSIZE);
-	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s/v1\r\nConnection: close\r\nAuthorization: Bearer %s\r\n\r\n", data, server, access_token);
+	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nContent-Length: 0\r\nAuthorization: Bearer %s\r\n\r\n", data, server, access_token);
 	err_t err = tls_client_send_data_raw(packet);
 	return err;
 }
 
 err_t tls_client_send_data_with_headers(char *data, char *additional_headers){
-	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + strlen(additional_headers) + 68;
+	uint16_t msg_size = strlen(data) + strlen(server) + strlen(access_token) + strlen(additional_headers) + 70;
 	if(msg_size > BUFSIZE){
 		printf("Message too big!\n");
 		return ERR_RST;
 	}
 	memset(packet, 0, BUFSIZE);
-	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s/v1\r\nConnection: close\r\nAuthorization: Bearer %s\r\n%s\r\n", data, server, access_token, additional_headers);
+	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nAuthorization: Bearer %s\r\n%s\r\n", data, server, access_token, additional_headers);
 	err_t err = tls_client_send_data_raw(packet);
 	return err;
 }
 
 err_t tls_client_send_data_with_body(char *cmd, char *data_format, char* body){
-	uint16_t msg_size = strlen(cmd) + strlen(server) + strlen(access_token) + strlen(data_format) + sizeof(strlen(body)) + strlen(body) + 103;
+	uint16_t msg_size = strlen(cmd) + strlen(server) + strlen(access_token) + strlen(data_format) + sizeof(strlen(body)) + strlen(body) + 105;
 	if(msg_size > BUFSIZE){
 		printf("Message too big!\n");
 		return ERR_RST;
 	}
 	memset(packet, 0, BUFSIZE);
-	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s/v1\r\nConnection: close\r\nAuthorization: Bearer %s\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n%s\r\n", cmd, server, access_token, data_format, strlen(body), body);
+	snprintf(packet, msg_size, "%s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nAuthorization: Bearer %s\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n%s\r\n", cmd, server, access_token, data_format, strlen(body), body);
 	err_t err = tls_client_send_data_raw(packet);
 	return err;
 }

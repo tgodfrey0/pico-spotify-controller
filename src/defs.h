@@ -23,10 +23,10 @@
 // Request Strings
 char *server = "api.spotify.com";
 
-char *cmd_get_playback = "GET /me/player";
-char *cmd_play = "PUT /me/player/play";
-char *cmd_pause = "PUT /me/player/pause";
-char *cmd_next = "PUT /me/player/next";
-char *cmd_previous = "PUT /me/player/previous";
+char *cmd_get_playback = "GET /v1/me/player";
+char *cmd_play = "PUT /v1/me/player/play";
+char *cmd_pause = "PUT /v1/me/player/pause";
+char *cmd_next = "PUT /v1/me/player/next";
+char *cmd_previous = "PUT /v1/me/player/previous";
 
 #endif /* DEFS_H */
