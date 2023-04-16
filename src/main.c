@@ -27,6 +27,30 @@ extern lwjson_t lwjson;
 
 bool ready = false;
 
+void button_isr(uint gpio, uint32_t state){
+  //next();
+  //busy_wait_ms(3000);
+  sync_playback();
+  //busy_wait_ms(3000);
+  //previous();
+  //busy_wait_ms(3000);
+  return;
+  switch (gpio) {
+    case 10:
+      printf("Button 10 pressed\n");
+      previous();
+      break;
+    case 11:
+      printf("Button 11 pressed\n");
+      togglePlayback();
+      break;
+    case 12:
+      printf("Button 12 pressed\n");
+      next();
+      break;
+  }
+}
+
 int main() {
   stdio_init_all();
 
@@ -54,18 +78,19 @@ int main() {
 
   //togglePlayback();
   printf("IN MAIN\n");
-  
-  gpio_set_irq_enabled_with_callback(21, GPIO_IRQ_EDGE_FALL, true, &togglePlayback);
-  gpio_set_irq_enabled_with_callback(20, GPIO_IRQ_EDGE_FALL, true, &previous);
-  gpio_set_irq_enabled_with_callback(22, GPIO_IRQ_EDGE_FALL, true, &next);
-  //tls_client_send_data(cmd_pause);
-  //busy_wait_ms(3000);
-  //play();
-  //busy_wait_ms(3000);
-  //next();
-  //busy_wait_ms(3000);
-  //previous();
-  //busy_wait_ms(3000);
+ 
+  gpio_init(10);
+  gpio_set_dir(10, GPIO_IN);
+  gpio_pull_down(10);
+  gpio_set_irq_enabled_with_callback(10, GPIO_IRQ_EDGE_FALL, true, &button_isr);
+  gpio_init(11);
+  gpio_set_dir(11, GPIO_IN);
+  gpio_pull_down(11);
+  gpio_set_irq_enabled_with_callback(11, GPIO_IRQ_EDGE_FALL, true, &button_isr);
+  gpio_init(12);
+  gpio_set_dir(12, GPIO_IN);
+  gpio_pull_down(12);
+  gpio_set_irq_enabled_with_callback(12, GPIO_IRQ_EDGE_FALL, true, &button_isr);
 
   while(true){
     sleep_ms((token_expiry - 30) * 1000);

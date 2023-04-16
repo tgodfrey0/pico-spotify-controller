@@ -74,22 +74,24 @@ void get_token(){
 void spotify_init(){
   if(initialised) return;
   // Init lwjson
+  access_token = calloc(512, sizeof(char));
+  refresh_token = calloc(512, sizeof(char));
   lwjson_init(&lwjson, tokens, LWJSON_ARRAYSIZE(tokens));
   get_token();
 }
 
 void sync_playback(){
   if(!initialised) return;
-  return;
-
+  printf("Syncing playback state\n");
   tls_client_send_data(cmd_get_playback);
+  printf("SMSD\n");
 }
 
-void togglePlayback(uint gpio, uint32_t events){
+void togglePlayback(){
   if(!initialised) return;
   uint32_t state = save_and_disable_interrupts();
-  printf("Toggle playback pressed\n");
   sync_playback();
+  busy_wait_ms(500);
   if(playing){
     pause();
   } else {
@@ -114,35 +116,22 @@ void pause(){
   restore_interrupts(state);
 }
 
-void next(uint gpio, uint32_t events){
-  uint32_t state = save_and_disable_interrupts();
-  printf("Next pressed\n");
+void next(){
   if(!initialised) return;
+  uint32_t state = save_and_disable_interrupts();
+  sync_playback();
+  busy_wait_ms(500);
   tls_client_send_data(cmd_next);
   restore_interrupts(state);
 }
 
-void previous(uint gpio, uint32_t events){
-  uint32_t state = save_and_disable_interrupts();
-  printf("Previous pressed\n");
+void previous(){
   if(!initialised) return;
+  uint32_t state = save_and_disable_interrupts();
+  sync_playback();
+  busy_wait_ms(500);
   tls_client_send_data(cmd_previous);
   restore_interrupts(state);
-}
-
-void test(){
-  printf("\n\nPAUSE TEST\n");
-  pause();
-  busy_wait_ms(3000);
-  printf("PLAY TEST\n");
-  play();
-  busy_wait_ms(3000);
-  printf("NEXT TEST\n");
-  next(0, 0);
-  busy_wait_ms(3000);
-  printf("PREVIOUS TEST\n");
-  previous(0, 0);
-  busy_wait_ms(3000);
 }
 
 void parse_response(void *arg){
@@ -160,28 +149,26 @@ void parse_response(void *arg){
   status[3] = '\0';
   printf("Status code: %s\n", status);
   if(strncmp(status, "204", 3) == 0){
-    printf("Successful response");
+    printf("Successful response - no content\n");
+    return;
+  } else if(strncmp(status, "2xx", 1) == 0){
+    printf("Successful response\n");
+  } else if(strncmp(status, "401", 3) == 0){
+    printf("Bad token\n");
+    renew_token();
     return;
   } else if(strncmp(status, "4xx", 1) == 0){
     printf("Error response\n");
     return;
   }
 
-  char *body = strtok(res, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
-  body = strtok(NULL, "\r\n");
+  char *body;
+  for(uint16_t i = 0; i < strlen(res); i += 4){
+    if(res[i] == '\r' && res[i+1] == '\n' && res[i+2] == '\r' && res[i+3] == '\n'){
+      body = &res[i+4];
+      break;
+    }
+  }
 
   if(strcmp(body, "empty response") == 0){
     printf("Empty response\n");
@@ -199,11 +186,12 @@ void parse_response(void *arg){
       synchronise_in_progress = false;
     }
     else if ((t = lwjson_find(&lwjson, "is_playing")) != NULL) {
-      printf("Token found\n");
       if(t->type == LWJSON_TYPE_TRUE){
         playing = true;
+        printf("Playback state synced: playing\n");
       } else if(t->type == LWJSON_TYPE_FALSE){
         playing = false;
+        printf("Playback state synced: paused\n");
       } else {
         printf("Invalid is_playing value\n");
       }
@@ -211,27 +199,9 @@ void parse_response(void *arg){
         if(t->type == LWJSON_TYPE_NUM_INT) progress_ms = t->u.num_int;
       }
     } else if((t = lwjson_find(&lwjson, "access_token")) != NULL){
-      if(access_token != NULL){
-        free(access_token);
-        access_token = NULL;
-      }
-      access_token = calloc(t->u.str.token_value_len + 1, sizeof(char));
       strncpy(access_token, t->u.str.token_value, t->u.str.token_value_len);
       strncat(access_token, "\0", 1);
 
-      if((t = lwjson_find(&lwjson, "token_type")) != NULL){
-        if(token_type != NULL){
-          free(token_type);
-          token_type = NULL;
-        }
-        token_type = calloc(t->u.str.token_value_len + 1, sizeof(char));
-        strncpy(token_type, t->u.str.token_value, t->u.str.token_value_len);
-        strncat(token_type, "\0", 1);
-      } else {
-        printf("Cannot find token type\n");
-        return;
-      }
-      
       if((t = lwjson_find(&lwjson, "expires_in")) != NULL){
         token_expiry = t->u.num_int;
       } else {
@@ -240,11 +210,6 @@ void parse_response(void *arg){
       }
 
       if((t = lwjson_find(&lwjson, "refresh_token")) != NULL){
-        if(refresh_token != NULL){
-          free(refresh_token);
-          refresh_token = NULL;
-        }
-        refresh_token = calloc(t->u.str.token_value_len + 1, sizeof(char));
         strncpy(refresh_token, t->u.str.token_value, t->u.str.token_value_len);
         strncat(refresh_token, "\0", 1);
       }
@@ -252,7 +217,6 @@ void parse_response(void *arg){
       printf("\nToken: %s\nExpires in: %d\nRefresh Token: %s\n\n", access_token, token_expiry, refresh_token);
       if(!ready) ready = true;
       if(!initialised) initialised = true;
-      busy_wait_ms(3000);
       sync_playback();
     } else {
       printf("Token not found!\n");

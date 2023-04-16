@@ -75,12 +75,7 @@ err_t tls_client_send_data(char *data){
 	}
 
 	memset(packet, 0, BUFSIZE);
-	printf("MSG1 - nulled: %s\n", packet);
-	printf("server: %s\n", server);
-	printf("at: %s\n", access_token);
 	sprintf(packet, "%s HTTP/1.1\r\nHost: %s\r\nContent-Length: 0\r\nAuthorization: Bearer %s\r\n\r\n", data, server, access_token);
-	printf("MSG2 - desired msg (%s): %s\n", data, packet);
-	return ERR_OK;
 	err_t err = tls_client_send_data_raw(packet);
 	return err;
 }
@@ -130,10 +125,11 @@ err_t tls_client_recv(void *arg, struct altcp_pcb *pcb, struct pbuf *p, err_t er
 		return tls_client_close();
 	}
 
-	char* data;
+	char* data = calloc(p->tot_len+1, sizeof(char));
 
 	if (p->tot_len > 0) {
 		data = (char*)p->payload;
+		data[p->tot_len] = '\0';
 		printf("***\nnew data received from server:\n***\n\n%s\n\n***\n", data);
 		altcp_recved(pcb, p->tot_len);
 	}
