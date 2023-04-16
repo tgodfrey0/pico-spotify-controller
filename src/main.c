@@ -51,7 +51,7 @@ int main() {
     busy_wait_ms(100);
   }
 
-  busy_wait_ms(2000);
+  busy_wait_ms(3000);
   //togglePlayback();
   //pause();
   //busy_wait_ms(3000);
@@ -60,6 +60,7 @@ int main() {
   //next();
   //busy_wait_ms(3000);
   //previous();
+  //busy_wait_ms(3000);
   return 0;
 
   while(true){

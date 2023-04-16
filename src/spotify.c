@@ -124,20 +124,21 @@ void parse_response(void *arg){
 
   char *res = (char*)arg;
 
+  char status[4];
+  status[0] = res[9];
+  status[1] = res[10];
+  status[2] = res[11];
+  status[3] = '\0';
+  printf("Status code: %s\n", status);
+  if(strncmp(status, "204", 3) == 0){
+    printf("Successful response");
+    return;
+  } else if(strncmp(status, "4xx", 1) == 0){
+    printf("Error");
+    return;
+  }
+
   char *body = strtok(res, "\r\n");
-
-  //char *status;
-  //strncpy(status, body, strlen(body));
-  //status = strtok(status, " ");
-  //status = strtok(NULL, " ");
-  //if(strncmp(status, "204", 3) == 0){
-  //  printf("Successful response");
-  //  return;
-  //} else if(strncmp(status, "4xx", 1) == 0){
-  //  printf("Error");
-  //  return;
-  //}
-
   body = strtok(NULL, "\r\n");
   body = strtok(NULL, "\r\n");
   body = strtok(NULL, "\r\n");
@@ -208,7 +209,7 @@ void parse_response(void *arg){
       if(!ready) ready = true;
       if(!initialised) initialised = true;
       busy_wait_ms(3000);
-      tls_client_send_data(cmd_pause);
+      pause();
       //sync_playback();
     } else {
       printf("Token not found!\n");
