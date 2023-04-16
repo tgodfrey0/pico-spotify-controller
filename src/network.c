@@ -56,7 +56,6 @@ err_t tls_client_close() {
 
 err_t tls_client_send_data_raw(const char *msg){
 	printf("Sending %s", msg);
-
 	err_t err = altcp_write(pcb, msg, strlen(msg), TCP_WRITE_FLAG_COPY);
 	altcp_output(pcb);
 	if(err != ERR_OK){
@@ -120,6 +119,7 @@ void tls_client_err(void *arg, err_t err) {
 }
 
 err_t tls_client_recv(void *arg, struct altcp_pcb *pcb, struct pbuf *p, err_t err) {
+	printf("DATA RECEIVED\n");
 	if (!p) {
 		printf("connection closed\n");
 		return tls_client_close();

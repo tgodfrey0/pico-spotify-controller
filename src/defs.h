@@ -23,7 +23,6 @@
 // Request Strings
 const char* const server = "api.spotify.com";
 
-const char* const cmd_get_playback = "GET /v1/me/player";
 const char* const cmd_play = "PUT /v1/me/player/play";
 const char* const cmd_pause = "PUT /v1/me/player/pause";
 const char* const cmd_next = "POST /v1/me/player/next";

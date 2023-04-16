@@ -33,9 +33,6 @@ extern char *cmd_previous;
 static lwjson_token_t tokens[128];
 static lwjson_t lwjson;
 
-volatile bool playing = false;
-volatile uint32_t progress_ms = 0;
-volatile bool synchronise_in_progress = false;
 bool initialised = false;
 
 void renew_token(){
@@ -80,37 +77,15 @@ void spotify_init(){
   get_token();
 }
 
-void sync_playback(){
-  if(!initialised) return;
-  printf("Syncing playback state\n");
-  tls_client_send_data(cmd_get_playback);
-  printf("SMSD\n");
-}
-
-void togglePlayback(){
+void play(){
   if(!initialised) return;
   uint32_t state = save_and_disable_interrupts();
-  sync_playback();
-  busy_wait_ms(500);
-  if(playing){
-    pause();
-  } else {
-    play();
-  }
-  playing = !playing;
+  tls_client_send_data_with_body(cmd_play, "application/json", "{\"position_ms\": 0}");
   restore_interrupts(state);
 }
 
-void play(){
-
-  char body[15 + 4];
-  sprintf(body, "{\"position_ms\":%d}", progress_ms);
-
-  tls_client_send_data_with_body(cmd_play, "application/json", body);
-
-}
-
 void pause(){
+  if(!initialised) return;
   uint32_t state = save_and_disable_interrupts();
   tls_client_send_data(cmd_pause);
   restore_interrupts(state);
@@ -119,7 +94,6 @@ void pause(){
 void next(){
   if(!initialised) return;
   uint32_t state = save_and_disable_interrupts();
-  sync_playback();
   busy_wait_ms(500);
   tls_client_send_data(cmd_next);
   restore_interrupts(state);
@@ -128,8 +102,6 @@ void next(){
 void previous(){
   if(!initialised) return;
   uint32_t state = save_and_disable_interrupts();
-  sync_playback();
-  busy_wait_ms(500);
   tls_client_send_data(cmd_previous);
   restore_interrupts(state);
 }
@@ -183,21 +155,6 @@ void parse_response(void *arg){
       char *e = t->u.str.token_value;
       e[t->u.str.token_value_len] = '\0';
       printf("ERROR: %s\n", e);
-      synchronise_in_progress = false;
-    }
-    else if ((t = lwjson_find(&lwjson, "is_playing")) != NULL) {
-      if(t->type == LWJSON_TYPE_TRUE){
-        playing = true;
-        printf("Playback state synced: playing\n");
-      } else if(t->type == LWJSON_TYPE_FALSE){
-        playing = false;
-        printf("Playback state synced: paused\n");
-      } else {
-        printf("Invalid is_playing value\n");
-      }
-      if((t = lwjson_find(&lwjson, "progress_ms")) != NULL){
-        if(t->type == LWJSON_TYPE_NUM_INT) progress_ms = t->u.num_int;
-      }
     } else if((t = lwjson_find(&lwjson, "access_token")) != NULL){
       strncpy(access_token, t->u.str.token_value, t->u.str.token_value_len);
       strncat(access_token, "\0", 1);
@@ -217,7 +174,6 @@ void parse_response(void *arg){
       printf("\nToken: %s\nExpires in: %d\nRefresh Token: %s\n\n", access_token, token_expiry, refresh_token);
       if(!ready) ready = true;
       if(!initialised) initialised = true;
-      sync_playback();
     } else {
       printf("Token not found!\n");
     }
